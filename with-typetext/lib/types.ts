@@ -65,6 +65,7 @@ export interface StudentProfile {
   phone: string;
   qual_status: 'pending' | 'qualified' | 'not_qualified';
   prequalification_score: number | null;
+  batch?: string | null;
   created_at: string;
   updated_at: string;
 }
