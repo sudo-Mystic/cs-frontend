@@ -39,6 +39,9 @@ const DashboardPage = () => {
         api.getStudentProfile(),
       ]);
       
+      console.log('Profile Data:', profileData);
+      console.log('Prequalification Score:', profileData.prequalification_score);
+      
       setAssessments(assessmentsData);
       setStudentProfile(profileData);
     } catch (err) {
@@ -165,8 +168,8 @@ const DashboardPage = () => {
                 <div>
                   <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Prequalification Score</p>
                   <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                    {studentProfile.prequalification_score !== null 
-                      ? `${studentProfile.prequalification_score}%` 
+                    {studentProfile.prequalification_score != null 
+                      ? `${Number(studentProfile.prequalification_score).toFixed(1)}%` 
                       : 'Not taken'}
                   </p>
                 </div>
@@ -285,8 +288,8 @@ const DashboardPage = () => {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {studentProfile && studentProfile.prequalification_score !== null 
-                  ? `${studentProfile.prequalification_score}%` 
+                {studentProfile && studentProfile.prequalification_score != null 
+                  ? `${Number(studentProfile.prequalification_score).toFixed(1)}%` 
                   : 'N/A'}
               </div>
             </CardContent>

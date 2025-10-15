@@ -101,7 +101,17 @@ export const api = {
     const response = await fetch(`${API_BASE_URL}/api/users/profiles/students/`, {
       headers: getAuthHeaders(),
     });
-    return handleResponse<StudentProfile>(response);
+    const data = await handleResponse<StudentProfile | StudentProfile[]>(response);
+    
+    // If the API returns an array, get the first item
+    if (Array.isArray(data)) {
+      if (data.length === 0) {
+        throw new Error('No student profile found');
+      }
+      return data[0];
+    }
+    
+    return data as StudentProfile;
   },
 };
 
