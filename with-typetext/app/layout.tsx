@@ -31,7 +31,7 @@ export default function RootLayout({
       <body className={`${poppins.variable} ${openSans.variable} font-opensans antialiased`}>
         <div className="min-h-screen bg-cloudseals-dark relative overflow-hidden">
           {/* Animated Grid Background */}
-          <div className="absolute inset-0 opacity-10">
+          <div className="absolute inset-0 opacity-10 pointer-events-none">
             <div className="absolute inset-0 bg-gradient-to-br from-cloudseals-purple/20 via-transparent to-cloudseals-blue/20" />
             <svg className="absolute inset-0 w-full h-full animate-grid-move" xmlns="http://www.w3.org/2000/svg">
               <defs>

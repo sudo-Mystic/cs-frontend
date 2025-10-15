@@ -127,7 +127,7 @@ export default function AuthPage() {
 
     try {
       const fullPhoneNumber = registerData.country_code + registerData.phone;
-      const response = await fetch("http://localhost:8000/users/api/register/", {
+      const response = await fetch("http://localhost:8000/api/users/register/", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
