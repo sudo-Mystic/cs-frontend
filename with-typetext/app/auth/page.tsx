@@ -404,7 +404,7 @@ export default function AuthPage() {
                   isDarkMode ? "text-gray-400" : "text-gray-600"
                 }`}
               >
-                Don't have an account?{" "}
+                Don&apos;t have an account?{" "}
                 <button
                   onClick={switchToRegister}
                   className="font-semibold text-cloudseals-lightblue hover:text-cloudseals-green transition-colors"
