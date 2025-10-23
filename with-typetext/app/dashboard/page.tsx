@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { User, LogOut, Shield, BookOpen, Target, AlertCircle, CheckCircle, Clock, Trophy } from 'lucide-react';
+import { User, LogOut, Shield, BookOpen, Target, AlertCircle, CheckCircle, Clock, Trophy, Mail, Phone, Calendar, UserCircle } from 'lucide-react';
 import { api, tokenUtils } from '@/lib/api';
 import type { Assessment, StudentProfile } from '@/lib/types';
 
@@ -17,6 +17,7 @@ const DashboardPage = () => {
   const [dailyTests, setDailyTests] = useState<Assessment[]>([]);
   const [studentProfile, setStudentProfile] = useState<StudentProfile | null>(null);
   const [error, setError] = useState<string>('');
+  const [showProfile, setShowProfile] = useState(false);
 
   useEffect(() => {
     // Check if user is authenticated
@@ -66,6 +67,15 @@ const DashboardPage = () => {
   const handleLogout = () => {
     tokenUtils.clearTokens();
     router.push('/auth');
+  };
+
+  const formatDate = (dateString: string): string => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
   };
 
   const handleStartExam = (assessmentId: number, examType: 'prequalification' | 'daily') => {
@@ -133,20 +143,205 @@ const DashboardPage = () => {
                 CloudSeals Dashboard
               </h1>
             </div>
-            <Button
-              onClick={handleLogout}
-              variant="outline"
-              className="flex items-center space-x-2"
-            >
-              <LogOut className="h-4 w-4" />
-              <span>Logout</span>
-            </Button>
+            <div className="flex items-center space-x-3">
+              <Button
+                onClick={() => setShowProfile(!showProfile)}
+                variant="outline"
+                className="flex items-center space-x-2"
+              >
+                <UserCircle className="h-4 w-4" />
+                <span>Profile</span>
+              </Button>
+              <Button
+                onClick={handleLogout}
+                variant="outline"
+                className="flex items-center space-x-2"
+              >
+                <LogOut className="h-4 w-4" />
+                <span>Logout</span>
+              </Button>
+            </div>
           </div>
         </div>
       </header>
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Profile Section */}
+        {showProfile && studentProfile && (
+          <Card className="mb-6 border-2 border-cloudseals-blue">
+            <CardHeader className="bg-gradient-to-r from-cloudseals-blue to-cloudseals-purple">
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center space-x-3 text-white">
+                  <UserCircle className="h-8 w-8" />
+                  <div>
+                    <p className="text-2xl font-bold">
+                      {studentProfile.user.first_name} {studentProfile.user.last_name}
+                    </p>
+                    <p className="text-sm font-normal text-white/80">
+                      @{studentProfile.user.username}
+                    </p>
+                  </div>
+                </CardTitle>
+                <Button
+                  onClick={() => setShowProfile(false)}
+                  variant="ghost"
+                  size="sm"
+                  className="text-white hover:bg-white/20"
+                >
+                  Close
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="pt-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {/* Contact Information */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center space-x-2">
+                    <Mail className="h-5 w-5 text-cloudseals-blue" />
+                    <span>Contact Information</span>
+                  </h3>
+                  <div className="space-y-3">
+                    <div>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Email Address</p>
+                      <p className="text-base font-medium text-gray-900 dark:text-white flex items-center space-x-2">
+                        <Mail className="h-4 w-4 text-gray-400" />
+                        <span>{studentProfile.user.email}</span>
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Phone Number</p>
+                      <p className="text-base font-medium text-gray-900 dark:text-white flex items-center space-x-2">
+                        <Phone className="h-4 w-4 text-gray-400" />
+                        <span>{studentProfile.phone || 'Not provided'}</span>
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Academic Information */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center space-x-2">
+                    <Shield className="h-5 w-5 text-cloudseals-blue" />
+                    <span>Academic Status</span>
+                  </h3>
+                  <div className="space-y-3">
+                    <div>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Qualification Status</p>
+                      <div className="mt-1">
+                        {studentProfile.qual_status === 'qualified' ? (
+                          <div className="flex items-center space-x-2">
+                            <CheckCircle className="h-5 w-5 text-green-600" />
+                            <span className="text-base font-semibold text-green-600">Qualified</span>
+                          </div>
+                        ) : studentProfile.qual_status === 'not_qualified' ? (
+                          <div className="flex items-center space-x-2">
+                            <AlertCircle className="h-5 w-5 text-red-600" />
+                            <span className="text-base font-semibold text-red-600">Not Qualified</span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center space-x-2">
+                            <Clock className="h-5 w-5 text-yellow-600" />
+                            <span className="text-base font-semibold text-yellow-600">Pending</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    {studentProfile.qual_status === 'qualified' && studentProfile.batch && (
+                      <div>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">Assigned Batch</p>
+                        <p className="text-base font-medium text-gray-900 dark:text-white">
+                          {studentProfile.batch}
+                        </p>
+                      </div>
+                    )}
+                    {studentProfile.prequalification_score !== null && (
+                      <div>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                          {studentProfile.qual_status === 'qualified' ? 'Qualification Score' : 'Latest Score'}
+                        </p>
+                        <p className="text-2xl font-bold text-cloudseals-blue">
+                          {Number(studentProfile.prequalification_score).toFixed(1)}%
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Account Information */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center space-x-2">
+                    <Calendar className="h-5 w-5 text-cloudseals-blue" />
+                    <span>Account Details</span>
+                  </h3>
+                  <div className="space-y-3">
+                    <div>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Student ID</p>
+                      <p className="text-base font-medium text-gray-900 dark:text-white">
+                        #{studentProfile.id.toString().padStart(6, '0')}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Member Since</p>
+                      <p className="text-base font-medium text-gray-900 dark:text-white">
+                        {formatDate(studentProfile.created_at)}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Last Updated</p>
+                      <p className="text-base font-medium text-gray-900 dark:text-white">
+                        {formatDate(studentProfile.updated_at)}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Progress Summary for Qualified Students */}
+              {studentProfile.qual_status === 'qualified' && (
+                <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                    Certification Progress
+                  </h3>
+                  <div className="bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-900/20 dark:to-blue-900/20 rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                        Overall Progress
+                      </span>
+                      <span className="text-sm font-bold text-gray-900 dark:text-white">
+                        In Progress
+                      </span>
+                    </div>
+                    <p className="text-xs text-gray-600 dark:text-gray-400">
+                      Continue completing daily tests to advance toward your certification goal.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Motivational Message for Non-Qualified Students */}
+              {studentProfile.qual_status !== 'qualified' && (
+                <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+                  <Alert className="border-cloudseals-blue bg-blue-50 dark:bg-blue-900/20">
+                    <AlertCircle className="h-4 w-4 text-cloudseals-blue" />
+                    <AlertDescription className="text-blue-900 dark:text-blue-100">
+                      {studentProfile.qual_status === 'pending' ? (
+                        <span>
+                          <strong>Getting Started:</strong> Take the prequalification exam to assess your skills and begin your certification journey.
+                        </span>
+                      ) : (
+                        <span>
+                          <strong>Keep Practicing:</strong> Review the material and retake the prequalification exam to improve your score and qualify for the certification program.
+                        </span>
+                      )}
+                    </AlertDescription>
+                  </Alert>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
         {/* Welcome Section */}
         <div className="mb-8">
           <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
@@ -257,7 +452,7 @@ const DashboardPage = () => {
             <Alert className="mb-6 border-green-200 bg-green-50 dark:bg-green-900/20 dark:border-green-800">
               <CheckCircle className="h-4 w-4 text-green-600" />
               <AlertDescription className="text-green-800 dark:text-green-200">
-                <strong>🎉 Congratulations!</strong> You&apos;re now enrolled in the certification track. 
+                <strong>🎉 Congratulations!</strong> You're now enrolled in the certification track. 
                 Complete your daily tests consistently to maintain your progress and prepare for the final certification exam.
               </AlertDescription>
             </Alert>
