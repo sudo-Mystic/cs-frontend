@@ -2,12 +2,16 @@
 
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { User, LogOut, Shield, BookOpen, Target, AlertCircle, CheckCircle, Clock, Trophy, Mail, Phone, Calendar, UserCircle } from 'lucide-react';
 import { api, tokenUtils } from '@/lib/api';
 import type { Assessment, StudentProfile } from '@/lib/types';
+import { DashboardHeader } from '@/components/dashboard/header';
+import { StatsCards } from '@/components/dashboard/stats-cards';
+import { ExamList } from '@/components/dashboard/exam-list';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { AlertCircle, Sparkles } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { UserCircle, Mail, Phone, CheckCircle, Clock } from 'lucide-react';
 
 const DashboardPage = () => {
   const router = useRouter();
@@ -33,17 +37,12 @@ const DashboardPage = () => {
   const loadDashboardData = async () => {
     setIsLoading(true);
     setError('');
-    
+
     try {
       // Fetch student profile first to determine qualification status
       const profileData = await api.getStudentProfile();
-      
-      console.log('Profile Data:', profileData);
-      console.log('Prequalification Score:', profileData.prequalification_score);
-      console.log('Qualification Status:', profileData.qual_status);
-      
       setStudentProfile(profileData);
-      
+
       // Load different assessments based on qualification status
       if (profileData.qual_status === 'qualified') {
         // Qualified students see daily tests
@@ -69,6 +68,14 @@ const DashboardPage = () => {
     router.push('/auth');
   };
 
+  const handleStartExam = (assessmentId: number, examType: 'prequalification' | 'daily') => {
+    if (examType === 'daily') {
+      router.push(`/daily-test/${assessmentId}`);
+    } else {
+      router.push(`/prequalification-exam/${assessmentId}`);
+    }
+  };
+
   const formatDate = (dateString: string): string => {
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', {
@@ -78,646 +85,193 @@ const DashboardPage = () => {
     });
   };
 
-  const handleStartExam = (assessmentId: number, examType: 'prequalification' | 'daily') => {
-    if (examType === 'daily') {
-      router.push(`/daily-test/${assessmentId}`);
-    } else {
-      router.push(`/prequalification-exam/${assessmentId}`);
-    }
-  };
-
-  const getQualificationStatusBadge = (status: string) => {
-    switch (status) {
-      case 'qualified':
-        return (
-          <div className="flex items-center space-x-2 text-green-600 dark:text-green-400">
-            <CheckCircle className="h-5 w-5" />
-            <span className="font-semibold">Qualified</span>
-          </div>
-        );
-      case 'not_qualified':
-        return (
-          <div className="flex items-center space-x-2 text-red-600 dark:text-red-400">
-            <AlertCircle className="h-5 w-5" />
-            <span className="font-semibold">Not Qualified</span>
-          </div>
-        );
-      default:
-        return (
-          <div className="flex items-center space-x-2 text-yellow-600 dark:text-yellow-400">
-            <Clock className="h-5 w-5" />
-            <span className="font-semibold">Pending</span>
-          </div>
-        );
-    }
-  };
-
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-100 dark:bg-gray-900">
+      <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cloudseals-blue mx-auto mb-4"></div>
-          <div className="text-xl text-gray-600 dark:text-gray-300">Loading dashboard...</div>
+          <div className="relative w-16 h-16 mx-auto mb-4">
+            <div className="absolute inset-0 border-4 border-blue-200 rounded-full animate-pulse"></div>
+            <div className="absolute inset-0 border-4 border-blue-600 rounded-full border-t-transparent animate-spin"></div>
+          </div>
+          <div className="text-lg font-medium text-gray-600 dark:text-gray-300">Loading dashboard...</div>
         </div>
       </div>
     );
   }
 
   if (!isAuthenticated) {
-    return null; // Will redirect to auth
+    return null;
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
-      {/* Header */}
-      <header className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
-            <div className="flex items-center space-x-4">
-              <img
-                src="/images/cloudseals-logo-white-bg.png"
-                alt="CloudSeals Logo"
-                className="h-10 w-auto"
-              />
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-                CloudSeals Dashboard
-              </h1>
-            </div>
-            <div className="flex items-center space-x-3">
-              <Button
-                onClick={() => setShowProfile(!showProfile)}
-                variant="outline"
-                className="flex items-center space-x-2"
-              >
-                <UserCircle className="h-4 w-4" />
-                <span>Profile</span>
-              </Button>
-              <Button
-                onClick={handleLogout}
-                variant="outline"
-                className="flex items-center space-x-2"
-              >
-                <LogOut className="h-4 w-4" />
-                <span>Logout</span>
-              </Button>
-            </div>
-          </div>
-        </div>
-      </header>
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      <DashboardHeader
+        user={studentProfile?.user || null}
+        onProfileClick={() => setShowProfile(!showProfile)}
+        onLogoutClick={handleLogout}
+      />
 
-      {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Profile Section */}
+        {/* Profile Modal/Section */}
         {showProfile && studentProfile && (
-          <Card className="mb-6 border-2 border-cloudseals-blue">
-            <CardHeader className="bg-gradient-to-r from-cloudseals-blue to-cloudseals-purple">
-              <div className="flex items-center justify-between">
-                <CardTitle className="flex items-center space-x-3 text-white">
-                  <UserCircle className="h-8 w-8" />
-                  <div>
-                    <p className="text-2xl font-bold">
-                      {studentProfile.user.first_name} {studentProfile.user.last_name}
-                    </p>
-                    <p className="text-sm font-normal text-white/80">
-                      @{studentProfile.user.username}
-                    </p>
-                  </div>
-                </CardTitle>
-                <Button
-                  onClick={() => setShowProfile(false)}
-                  variant="ghost"
-                  size="sm"
-                  className="text-white hover:bg-white/20"
-                >
-                  Close
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent className="pt-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {/* Contact Information */}
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center space-x-2">
-                    <Mail className="h-5 w-5 text-cloudseals-blue" />
-                    <span>Contact Information</span>
-                  </h3>
-                  <div className="space-y-3">
-                    <div>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">Email Address</p>
-                      <p className="text-base font-medium text-gray-900 dark:text-white flex items-center space-x-2">
-                        <Mail className="h-4 w-4 text-gray-400" />
-                        <span>{studentProfile.user.email}</span>
-                      </p>
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+            <Card className="w-full max-w-2xl shadow-2xl border-none animate-in zoom-in-95 duration-200">
+              <CardHeader className="bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-t-xl">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center space-x-3">
+                    <div className="bg-white/20 p-2 rounded-full">
+                      <UserCircle className="h-8 w-8" />
                     </div>
                     <div>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">Phone Number</p>
-                      <p className="text-base font-medium text-gray-900 dark:text-white flex items-center space-x-2">
-                        <Phone className="h-4 w-4 text-gray-400" />
-                        <span>{studentProfile.phone || 'Not provided'}</span>
+                      <p className="text-2xl font-bold">
+                        {studentProfile.user.first_name} {studentProfile.user.last_name}
+                      </p>
+                      <p className="text-sm font-normal text-white/80">
+                        @{studentProfile.user.username}
                       </p>
                     </div>
-                  </div>
+                  </CardTitle>
+                  <Button
+                    onClick={() => setShowProfile(false)}
+                    variant="ghost"
+                    size="sm"
+                    className="text-white hover:bg-white/20"
+                  >
+                    Close
+                  </Button>
                 </div>
-
-                {/* Academic Information */}
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center space-x-2">
-                    <Shield className="h-5 w-5 text-cloudseals-blue" />
-                    <span>Academic Status</span>
-                  </h3>
-                  <div className="space-y-3">
+              </CardHeader>
+              <CardContent className="pt-6 bg-white dark:bg-gray-800 rounded-b-xl">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div className="space-y-6">
                     <div>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">Qualification Status</p>
-                      <div className="mt-1">
-                        {studentProfile.qual_status === 'qualified' ? (
-                          <div className="flex items-center space-x-2">
-                            <CheckCircle className="h-5 w-5 text-green-600" />
-                            <span className="text-base font-semibold text-green-600">Qualified</span>
-                          </div>
-                        ) : studentProfile.qual_status === 'not_qualified' ? (
-                          <div className="flex items-center space-x-2">
-                            <AlertCircle className="h-5 w-5 text-red-600" />
-                            <span className="text-base font-semibold text-red-600">Not Qualified</span>
-                          </div>
-                        ) : (
-                          <div className="flex items-center space-x-2">
-                            <Clock className="h-5 w-5 text-yellow-600" />
-                            <span className="text-base font-semibold text-yellow-600">Pending</span>
+                      <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">Contact Info</h3>
+                      <div className="space-y-3">
+                        <div className="flex items-center space-x-3 text-gray-700 dark:text-gray-300">
+                          <Mail className="h-5 w-5 text-blue-500" />
+                          <span>{studentProfile.user.email}</span>
+                        </div>
+                        <div className="flex items-center space-x-3 text-gray-700 dark:text-gray-300">
+                          <Phone className="h-5 w-5 text-blue-500" />
+                          <span>{studentProfile.phone || 'Not provided'}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">Account</h3>
+                      <div className="bg-gray-50 dark:bg-gray-900 p-4 rounded-lg space-y-2">
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-500">Student ID</span>
+                          <span className="font-mono font-medium">#{studentProfile.id.toString().padStart(6, '0')}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-500">Member Since</span>
+                          <span className="font-medium">{formatDate(studentProfile.created_at)}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-6">
+                    <div>
+                      <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">Academic Status</h3>
+                      <div className={`p-4 rounded-lg border ${studentProfile.qual_status === 'qualified'
+                          ? 'bg-green-50 border-green-100 dark:bg-green-900/20 dark:border-green-900'
+                          : 'bg-amber-50 border-amber-100 dark:bg-amber-900/20 dark:border-amber-900'
+                        }`}>
+                        <div className="flex items-center space-x-3 mb-2">
+                          {studentProfile.qual_status === 'qualified' ? (
+                            <CheckCircle className="h-6 w-6 text-green-600" />
+                          ) : (
+                            <Clock className="h-6 w-6 text-amber-600" />
+                          )}
+                          <span className={`text-lg font-bold capitalize ${studentProfile.qual_status === 'qualified' ? 'text-green-700' : 'text-amber-700'
+                            }`}>
+                            {studentProfile.qual_status.replace('_', ' ')}
+                          </span>
+                        </div>
+                        {studentProfile.prequalification_score !== null && (
+                          <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700">
+                            <p className="text-sm text-gray-600 dark:text-gray-400">Latest Score</p>
+                            <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                              {Number(studentProfile.prequalification_score).toFixed(1)}%
+                            </p>
                           </div>
                         )}
                       </div>
                     </div>
-                    {studentProfile.qual_status === 'qualified' && studentProfile.batch && (
-                      <div>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">Assigned Batch</p>
-                        <p className="text-base font-medium text-gray-900 dark:text-white">
-                          {studentProfile.batch}
-                        </p>
-                      </div>
-                    )}
-                    {studentProfile.prequalification_score !== null && (
-                      <div>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">
-                          {studentProfile.qual_status === 'qualified' ? 'Qualification Score' : 'Latest Score'}
-                        </p>
-                        <p className="text-2xl font-bold text-cloudseals-blue">
-                          {Number(studentProfile.prequalification_score).toFixed(1)}%
-                        </p>
-                      </div>
-                    )}
                   </div>
                 </div>
-
-                {/* Account Information */}
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center space-x-2">
-                    <Calendar className="h-5 w-5 text-cloudseals-blue" />
-                    <span>Account Details</span>
-                  </h3>
-                  <div className="space-y-3">
-                    <div>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">Student ID</p>
-                      <p className="text-base font-medium text-gray-900 dark:text-white">
-                        #{studentProfile.id.toString().padStart(6, '0')}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">Member Since</p>
-                      <p className="text-base font-medium text-gray-900 dark:text-white">
-                        {formatDate(studentProfile.created_at)}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">Last Updated</p>
-                      <p className="text-base font-medium text-gray-900 dark:text-white">
-                        {formatDate(studentProfile.updated_at)}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Progress Summary for Qualified Students */}
-              {studentProfile.qual_status === 'qualified' && (
-                <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                    Certification Progress
-                  </h3>
-                  <div className="bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-900/20 dark:to-blue-900/20 rounded-lg p-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                        Overall Progress
-                      </span>
-                      <span className="text-sm font-bold text-gray-900 dark:text-white">
-                        In Progress
-                      </span>
-                    </div>
-                    <p className="text-xs text-gray-600 dark:text-gray-400">
-                      Continue completing daily tests to advance toward your certification goal.
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {/* Motivational Message for Non-Qualified Students */}
-              {studentProfile.qual_status !== 'qualified' && (
-                <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
-                  <Alert className="border-cloudseals-blue bg-blue-50 dark:bg-blue-900/20">
-                    <AlertCircle className="h-4 w-4 text-cloudseals-blue" />
-                    <AlertDescription className="text-blue-900 dark:text-blue-100">
-                      {studentProfile.qual_status === 'pending' ? (
-                        <span>
-                          <strong>Getting Started:</strong> Take the prequalification exam to assess your skills and begin your certification journey.
-                        </span>
-                      ) : (
-                        <span>
-                          <strong>Keep Practicing:</strong> Review the material and retake the prequalification exam to improve your score and qualify for the certification program.
-                        </span>
-                      )}
-                    </AlertDescription>
-                  </Alert>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </div>
         )}
 
         {/* Welcome Section */}
-        <div className="mb-8">
-          <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-            Welcome back, {studentProfile?.user?.first_name || 'Student'}!
-          </h2>
-          <p className="text-gray-600 dark:text-gray-400">
-            {studentProfile?.qual_status === 'qualified' 
-              ? 'Continue your daily practice and maintain your certification progress'
-              : 'Track your progress and continue your cloud certification journey'
+        <div className="mb-8 animate-in slide-in-from-bottom-4 duration-500">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+            Welcome back, {studentProfile?.user?.first_name}! 👋
+          </h1>
+          <p className="text-lg text-gray-600 dark:text-gray-400">
+            {studentProfile?.qual_status === 'qualified'
+              ? "You're doing great! Keep up with your daily tests."
+              : "Ready to start your journey? Complete the prequalification exam."
             }
           </p>
         </div>
 
-        {/* Error Alert */}
         {error && (
-          <Alert variant="destructive" className="mb-6">
+          <Alert variant="destructive" className="mb-6 animate-in slide-in-from-top-2">
             <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Error</AlertTitle>
             <AlertDescription>{error}</AlertDescription>
           </Alert>
         )}
 
-        {/* Profile Status Card - Conditional based on qualification */}
-        {studentProfile && studentProfile.qual_status === 'qualified' ? (
-          /* Qualified Student - Show Batch & Progress Info */
-          <Card className="mb-6 border-l-4 border-l-green-600 bg-gradient-to-r from-green-50 to-transparent dark:from-green-900/20 dark:to-transparent">
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <CheckCircle className="h-6 w-6 text-green-600" />
-                <span>Active Learning Status</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Certification Status</p>
-                  <div className="flex items-center space-x-2">
-                    <CheckCircle className="h-5 w-5 text-green-600" />
-                    <span className="text-xl font-bold text-green-600">Qualified</span>
-                  </div>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    Ready for certification track
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Your Batch</p>
-                  <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                    {studentProfile.batch || 'Not Assigned'}
-                  </p>
-                  {studentProfile.batch && (
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                      Active enrollment
-                    </p>
-                  )}
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Contact</p>
-                  <p className="text-sm font-medium text-gray-900 dark:text-white">
-                    {studentProfile.user?.email || 'N/A'}
-                  </p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    For support queries
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ) : (
-          /* Non-Qualified Student - Show Prequalification Status */
-          studentProfile && (
-            <Card className="mb-6 border-l-4 border-l-cloudseals-blue">
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Trophy className="h-6 w-6 text-cloudseals-blue" />
-                  <span>Qualification Status</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Status</p>
-                    {getQualificationStatusBadge(studentProfile.qual_status)}
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Prequalification Score</p>
-                    <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                      {studentProfile.prequalification_score != null 
-                        ? `${Number(studentProfile.prequalification_score).toFixed(1)}%` 
-                        : 'Not taken'}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Email</p>
-                    <p className="text-sm font-medium text-gray-900 dark:text-white">
-                      {studentProfile.user?.email || 'N/A'}
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          )
-        )}
-
-        {/* Conditional Content Based on Qualification Status */}
-        {studentProfile?.qual_status === 'qualified' ? (
-          /* Daily Tests for Qualified Students */
-          <>
-            {/* Helpful Tips for Qualified Students */}
-            <Alert className="mb-6 border-green-200 bg-green-50 dark:bg-green-900/20 dark:border-green-800">
-              <CheckCircle className="h-4 w-4 text-green-600" />
-              <AlertDescription className="text-green-800 dark:text-green-200">
-                <strong>🎉 Congratulations!</strong> You're now enrolled in the certification track. 
-                Complete your daily tests consistently to maintain your progress and prepare for the final certification exam.
-              </AlertDescription>
-            </Alert>
-
-            <div className="mb-8">
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h3 className="text-2xl font-bold text-gray-900 dark:text-white">
-                    Daily Tests
-                  </h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                    Complete your daily practice tests to maintain your certification progress
-                  </p>
-                </div>
-                {studentProfile.batch && (
-                  <div className="text-right">
-                    <p className="text-sm text-gray-600 dark:text-gray-400">Your Batch</p>
-                    <p className="text-lg font-semibold text-green-600">{studentProfile.batch}</p>
-                  </div>
-                )}
-              </div>
-              
-              {dailyTests.length === 0 ? (
-                <Card>
-                  <CardContent className="py-12">
-                    <div className="text-center">
-                      <BookOpen className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                      <p className="text-gray-600 dark:text-gray-400">
-                        No daily tests available at the moment.
-                      </p>
-                      <p className="text-sm text-gray-500 dark:text-gray-500 mt-2">
-                        Check back later for new assignments!
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {dailyTests.map((test) => (
-                    <Card key={test.id} className="hover:shadow-lg transition-shadow border-l-4 border-l-green-500">
-                      <CardHeader>
-                        <CardTitle className="flex items-center space-x-2">
-                          <BookOpen className="h-5 w-5 text-green-600" />
-                          <span>{test.title}</span>
-                        </CardTitle>
-                        {test.description && (
-                          <CardDescription>{test.description}</CardDescription>
-                        )}
-                      </CardHeader>
-                      <CardContent>
-                        <div className="space-y-3 mb-4">
-                          <div className="flex justify-between items-center text-sm">
-                            <span className="text-gray-600 dark:text-gray-400">Questions:</span>
-                            <span className="font-semibold text-gray-900 dark:text-white">
-                              {test.questions.length}
-                            </span>
-                          </div>
-                          <div className="flex justify-between items-center text-sm">
-                            <span className="text-gray-600 dark:text-gray-400">Total Marks:</span>
-                            <span className="font-semibold text-gray-900 dark:text-white">
-                              {test.total_marks}
-                            </span>
-                          </div>
-                          <div className="flex justify-between items-center text-sm">
-                            <span className="text-gray-600 dark:text-gray-400">Passing Marks:</span>
-                            <span className="font-semibold text-gray-900 dark:text-white">
-                              {test.passing_marks}
-                            </span>
-                          </div>
-                          {test.duration && (
-                            <div className="flex justify-between items-center text-sm">
-                              <span className="text-gray-600 dark:text-gray-400">Duration:</span>
-                              <span className="font-semibold text-gray-900 dark:text-white">
-                                {test.duration} mins
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                        <Button 
-                          onClick={() => handleStartExam(test.id, 'daily')}
-                          className="w-full bg-green-600 hover:bg-green-700 transition-colors"
-                        >
-                          <Target className="h-4 w-4 mr-2" />
-                          Start Test
-                        </Button>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              )}
-            </div>
-          </>
-        ) : (
-          /* Prequalification Exams for Non-Qualified Students */
-          <div className="mb-8">
-            <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
-              Prequalification Exams
-            </h3>
-            
-            {assessments.length === 0 ? (
-              <Card>
-                <CardContent className="py-12">
-                  <div className="text-center">
-                    <BookOpen className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-600 dark:text-gray-400">
-                      No prequalification exams available at the moment.
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {assessments.map((assessment) => (
-                  <Card key={assessment.id} className="hover:shadow-lg transition-shadow">
-                    <CardHeader>
-                      <CardTitle className="flex items-center space-x-2">
-                        <Shield className="h-5 w-5 text-cloudseals-blue" />
-                        <span>{assessment.title}</span>
-                      </CardTitle>
-                      {assessment.description && (
-                        <CardDescription>{assessment.description}</CardDescription>
-                      )}
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-3 mb-4">
-                        <div className="flex justify-between items-center text-sm">
-                          <span className="text-gray-600 dark:text-gray-400">Questions:</span>
-                          <span className="font-semibold text-gray-900 dark:text-white">
-                            {assessment.questions.length}
-                          </span>
-                        </div>
-                        <div className="flex justify-between items-center text-sm">
-                          <span className="text-gray-600 dark:text-gray-400">Total Marks:</span>
-                          <span className="font-semibold text-gray-900 dark:text-white">
-                            {assessment.total_marks}
-                          </span>
-                        </div>
-                        <div className="flex justify-between items-center text-sm">
-                          <span className="text-gray-600 dark:text-gray-400">Passing Marks:</span>
-                          <span className="font-semibold text-gray-900 dark:text-white">
-                            {assessment.passing_marks}
-                          </span>
-                        </div>
-                        {assessment.duration && (
-                          <div className="flex justify-between items-center text-sm">
-                            <span className="text-gray-600 dark:text-gray-400">Duration:</span>
-                            <span className="font-semibold text-gray-900 dark:text-white">
-                              {assessment.duration} mins
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                      <Button 
-                        onClick={() => handleStartExam(assessment.id, 'prequalification')}
-                        className="w-full bg-cloudseals-blue hover:bg-cloudseals-purple transition-colors"
-                      >
-                        <Target className="h-4 w-4 mr-2" />
-                        Start Exam
-                      </Button>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            )}
+        {/* Stats Overview */}
+        {studentProfile && (
+          <div className="animate-in slide-in-from-bottom-6 duration-500 delay-100">
+            <StatsCards
+              qualStatus={studentProfile.qual_status}
+              dailyTestsCount={dailyTests.length}
+              assessmentsCount={assessments.length}
+              batch={studentProfile.batch}
+              prequalificationScore={studentProfile.prequalification_score}
+            />
           </div>
         )}
 
-        {/* Quick Stats */}
-        {studentProfile?.qual_status === 'qualified' ? (
-          /* Stats for Qualified Students */
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            <Card className="border-l-4 border-l-green-600">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Available Tests</CardTitle>
-                <BookOpen className="h-4 w-4 text-green-600" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{dailyTests.length}</div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Daily practice assignments
-                </p>
-              </CardContent>
-            </Card>
-            
-            <Card className="border-l-4 border-l-blue-600">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Batch Assignment</CardTitle>
-                <Shield className="h-4 w-4 text-blue-600" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  {studentProfile.batch || 'Pending'}
-                </div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {studentProfile.batch ? 'Active enrollment' : 'Awaiting assignment'}
-                </p>
-              </CardContent>
-            </Card>
-            
-            <Card className="border-l-4 border-l-purple-600">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Certification Track</CardTitle>
-                <Trophy className="h-4 w-4 text-purple-600" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">Active</div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  In progress
-                </p>
-              </CardContent>
-            </Card>
+        {/* Main Content Area */}
+        <div className="animate-in slide-in-from-bottom-8 duration-500 delay-200">
+          {studentProfile?.qual_status === 'qualified' ? (
+            <>
+              <Alert className="mb-8 bg-gradient-to-r from-blue-50 to-purple-50 border-blue-100 dark:from-blue-900/20 dark:to-purple-900/20 dark:border-blue-900">
+                <Sparkles className="h-4 w-4 text-blue-600" />
+                <AlertTitle className="text-blue-800 dark:text-blue-300 font-semibold">Certification Track Active</AlertTitle>
+                <AlertDescription className="text-blue-700 dark:text-blue-400">
+                  You have successfully qualified! Complete your daily assignments to maintain your streak.
+                </AlertDescription>
+              </Alert>
 
-            <Card className="border-l-4 border-l-orange-600">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Tests Completed</CardTitle>
-                <CheckCircle className="h-4 w-4 text-orange-600" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">0</div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Daily tests finished
-                </p>
-              </CardContent>
-            </Card>
-          </div>
-        ) : (
-          /* Stats for Non-Qualified Students */
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Available Exams</CardTitle>
-                <BookOpen className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{assessments.length}</div>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Qualification Status</CardTitle>
-                <Shield className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold capitalize">
-                  {studentProfile?.qual_status?.replace('_', ' ') || 'Pending'}
-                </div>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Best Score</CardTitle>
-                <Trophy className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  {studentProfile && studentProfile.prequalification_score != null 
-                    ? `${Number(studentProfile.prequalification_score).toFixed(1)}%` 
-                    : 'N/A'}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        )}
+              <ExamList
+                title="Daily Assignments"
+                description="Practice tests assigned to your batch"
+                exams={dailyTests}
+                type="daily"
+                onStartExam={handleStartExam}
+              />
+            </>
+          ) : (
+            <ExamList
+              title="Prequalification Exams"
+              description="Complete these exams to qualify for the certification program"
+              exams={assessments}
+              type="prequalification"
+              onStartExam={handleStartExam}
+            />
+          )}
+        </div>
       </main>
     </div>
   );
